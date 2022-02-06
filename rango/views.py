@@ -6,6 +6,12 @@ from django.http import HttpResponse
 from rango.models import Category
 from rango.models import Page
 
+from rango.forms import CategoryForm
+from rango.forms import PageForm
+from django.shortcuts import redirect
+from django.urls import reverse
+
+
 def index(request):
     category_list = Category.objects.order_by('-likes')[:5]
     page_list = Page.objects.order_by('-views')[:5]
@@ -23,16 +29,6 @@ def about(request):
     return render(request, 'rango/about.html', context = context_dict)
 
 def show_category(request, category_name_slug):
-    """Our new view follows the same basic steps as our index() view. We first define a
-context dictionary. Then, we attempt to extract the data from the models and add
-the relevant data to the context dictionary. We determine which category has been
-requested by using the value passed category_name_slug to the show_category() view
-function (in addition to the request parameter).
-If the category slug is found in the Category model, we can then pull out the associated
-pages, and add this to the context dictionary, context_dict. If the category
-requested was not found, we set the associated context dictionary values to None.
-Finally, we render() everything together, using a new category.html template.
-    """
     context_dict = {}
 
     try:
@@ -45,3 +41,48 @@ Finally, we render() everything together, using a new category.html template.
         context_dict['category'] = None
 
     return render(request, 'rango/category.html', context=context_dict)
+
+def add_category(request):
+    form = CategoryForm()
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+
+        if form.is_valid():
+            cat = form.save(commit=True)
+            print("New category has been added: ",cat, cat.slug)
+            return redirect('/rango/')
+        else:
+            print(form.errors)
+
+    return render(request, 'rango/add_category.html', {'form': form})
+
+def add_page(request, category_name_slug):
+    try:
+        category = Category.objects.get(slug=category_name_slug)
+    except Category.DoesNotExist:
+        category = None
+
+    #if there's no category don't add a page
+    if category is None:
+        return redirect('/rango/')
+
+    form = PageForm()
+
+    if request.method == 'POST':
+        form = PageForm(request.POST)
+
+        if form.is_valid():
+            if category:
+                page = form.save(commit=False)
+                page.category = category
+                page.views = 0
+                page.save()
+
+                return redirect(reverse('rango:show_category',
+                 kwargs={'category_name_slug': category_name_slug}))
+        else:
+            print(form.errors)
+
+    context_dict = {'form':form, 'category': category}
+    return render(request, 'rango/add_page.html', context=context_dict)
