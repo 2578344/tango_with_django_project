@@ -26,6 +26,9 @@ STATIC_DIR = os.path.join(BASE_DIR, 'static')
 #root, plus ‘/media’ 
 MEDIA_DIR = os.path.join(BASE_DIR, 'media')
 
+#use to redirect user if wants to get to restricted page
+LOGIN_URL = 'rango:login'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
